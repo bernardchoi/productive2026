@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>개인 생산성 대시보드</title>
+    <!-- Tailwind CSS 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 폰트(Inter) 및 아이콘(Phosphor Icons) 로드 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* 배경색 전환 애니메이션 */
+            transition: background 1s ease-in-out;
+            background-size: 200% 200%;
+            animation: gradientMove 15s ease infinite;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 날씨/시간에 따른 전체 배경 그라데이션 (Body에 적용) */
+        body.bg-day { background: linear-gradient(-45deg, #4facfe, #00f2fe, #38bdf8); color: white; }
+        body.bg-night { background: linear-gradient(-45deg, #141e30, #243b55, #0f172a); color: white; }
+        body.bg-sunset { background: linear-gradient(-45deg, #fa709a, #fee140, #f87171); color: white; }
+        body.bg-cloudy { background: linear-gradient(-45deg, #606c88, #3f4c6b, #475569); color: white; }
+        body.bg-rainy { background: linear-gradient(-45deg, #2c3e50, #3498db, #1e3a8a); color: white; }
+        body.bg-snowy { background: linear-gradient(-45deg, #74ebd5, #9face6, #93c5fd); color: #1f2937; }
+
+        /* 글래스모피즘 위젯 스타일 */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 1.5rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+        }
+
+        /* 눈 오는 날씨 등 밝은 배경일 때 텍스트 색상 조정을 위한 클래스 */
+        body.bg-snowy .glass-panel {
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        
+        body.bg-snowy .text-white\/50 { color: rgba(0,0,0,0.4); }
+        body.bg-snowy .text-white\/80 { color: rgba(0,0,0,0.7); }
+        body.bg-snowy .text-white { color: #111827; }
+        body.bg-snowy .bg-white\/20 { background-color: rgba(0,0,0,0.1); }
+        body.bg-snowy .bg-black\/10 { background-color: rgba(255,255,255,0.5); }
+
+        /* 커스텀 스크롤바 (To-Do 리스트용) */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        /* 할 일 완료 시 취소선 효과 */
+        .todo-done {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        /* 로딩 스피너 */
+        .loader {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-day p-4 sm:p-8">
+
+    <!-- 메인 래퍼 -->
+    <div class="w-full max-w-7xl mx-auto flex flex-col gap-6 relative z-10">
+        
+        <!-- ========================================== -->
+        <!-- 0. 사용자 인사말 영역 -->
+        <!-- ========================================== -->
+        <div class="flex items-center justify-between px-2 sm:px-4 mt-2 mb-2">
+            <div id="greetingSection" class="flex items-center gap-3">
+                <!-- 이름 입력 폼 -->
+                <div id="nameInputContainer" class="flex items-center gap-2 hidden">
+                    <input type="text" id="userNameInput" placeholder="이름을 입력하세요" class="bg-white/20 border border-white/30 rounded-xl px-4 py-2 text-sm focus:outline-none focus:bg-white/30 text-white placeholder-white/60 shadow-inner transition w-48">
+                    <button onclick="saveUserName()" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl text-sm font-bold transition shadow-sm">확인</button>
+                </div>
+                <!-- 환영 메시지 -->
+                <div id="greetingTextContainer" class="flex items-center gap-3 hidden group">
+                    <span id="greetingText" class="text-2xl sm:text-3xl font-extrabold drop-shadow-md tracking-tight"></span>
+                    <button onclick="showNameInput()" class="opacity-0 group-hover:opacity-100 bg-white/20 hover:bg-white/30 p-1.5 rounded-lg transition text-white" title="이름 수정">
+                        <i class="ph ph-pencil-simple text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 위젯 그리드 영역 -->
+        <div class="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- ========================================== -->
+            <!-- 1. 날씨 & 시계 위젯 -->
+            <!-- ========================================== -->
+            <div class="glass-panel p-6 flex flex-col items-center justify-center relative h-[420px]">
+                
+                <!-- 로딩 오버레이 (복구됨) -->
+                <div id="loadingOverlay" class="absolute inset-0 bg-black/20 flex flex-col items-center justify-center z-10 rounded-[1.5rem] backdrop-blur-sm hidden">
+                    <div class="loader mb-2"></div>
+                    <span class="text-sm font-medium text-white">날씨 가져오는 중...</span>
+                </div>
+
+                <!-- 에러 메시지 영역 (복구됨) -->
+                <div id="errorMessage" class="absolute inset-0 bg-white/90 text-gray-800 flex flex-col items-center justify-center z-20 rounded-[1.5rem] hidden p-4">
+                    <i class="ph ph-warning-circle text-4xl text-red-500 mb-2"></i>
+                    <p id="errorText" class="text-sm text-center font-medium">정보를 불러올 수 없습니다.</p>
+                    <button onclick="fetchWeather()" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-full text-xs font-semibold hover:bg-blue-600 transition">다시 시도</button>
+                </div>
+
+                <!-- 상단: 위치 정보 (복구됨) -->
+                <div class="w-full flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-1 opacity-90">
+                        <i class="ph-fill ph-map-pin text-lg"></i>
+                        <span id="locationName" class="text-lg font-semibold tracking-wide">위치 확인 중</span>
+                    </div>
+                    <button onclick="fetchWeather()" class="p-2 rounded-full hover:bg-white/20 transition opacity-80 hover:opacity-100" title="날씨 새로고침">
+                        <i class="ph ph-arrows-clockwise text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- 중단: 시계 -->
+                <div class="my-6 w-full flex flex-col items-center">
+                    <div id="timeDisplay" class="text-6xl sm:text-7xl font-bold tracking-tighter tabular-nums drop-shadow-md">
+                        --:--
+                    </div>
+                    <div id="dateDisplay" class="text-base font-medium opacity-80 mt-2">
+                        --월 --일 (-)
+                    </div>
+                </div>
+
+                <div class="w-full h-px bg-white/20 my-4 rounded-full"></div>
+
+                <!-- 하단: 날씨 -->
+                <div class="w-full flex items-center justify-between mt-2">
+                    <!-- 날씨 아이콘/설명 -->
+                    <div class="flex flex-col items-center justify-center w-1/2 border-r border-white/20">
+                        <div id="weatherIconContainer" class="text-6xl drop-shadow-lg mb-1">
+                            <i class="ph-fill ph-cloud text-white/50"></i>
+                        </div>
+                        <span id="weatherDesc" class="text-sm font-medium opacity-90">상태</span>
+                    </div>
+
+                    <!-- 기온 정보 -->
+                    <div class="flex flex-col items-center justify-center w-1/2">
+                        <div class="flex items-start">
+                            <span id="currentTemp" class="text-5xl font-extrabold tracking-tighter drop-shadow-md">--</span>
+                            <span class="text-2xl font-bold mt-1 ml-1 opacity-80">°</span>
+                        </div>
+                        <div class="flex gap-3 mt-2 text-sm font-semibold opacity-90 bg-black/10 px-3 py-1.5 rounded-full">
+                            <div class="flex items-center gap-1 text-blue-200" title="최저 기온">
+                                <i class="ph ph-arrow-down-right"></i>
+                                <span id="minTemp">--°</span>
+                            </div>
+                            <div class="flex items-center gap-1 text-red-200" title="최고 기온">
+                                <i class="ph ph-arrow-up-right"></i>
+                                <span id="maxTemp">--°</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        <!-- ========================================== -->
+        <!-- 2. 캘린더 위젯 (새로 추가) -->
+        <!-- ========================================== -->
+        <div class="glass-panel p-6 flex flex-col h-[420px]">
+            <!-- 헤더 (년월, 네비게이션) -->
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold flex items-center gap-2 drop-shadow-sm">
+                    <i class="ph-fill ph-calendar-blank text-2xl"></i>
+                    달력
+                </h2>
+                <div class="flex items-center gap-2">
+                    <button onclick="goToday()" class="bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1 rounded-full text-xs font-bold transition shadow-sm">
+                        오늘
+                    </button>
+                    <div class="flex items-center gap-1 bg-white/10 rounded-full px-1 py-1">
+                        <button onclick="changeMonth(-1)" class="p-1 hover:bg-white/20 rounded-full transition"><i class="ph ph-caret-left font-bold"></i></button>
+                        <span id="calMonthYear" class="text-sm font-semibold min-w-[70px] text-center">--년 -월</span>
+                        <button onclick="changeMonth(1)" class="p-1 hover:bg-white/20 rounded-full transition"><i class="ph ph-caret-right font-bold"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 달력 그리드 (일~토) -->
+            <div id="calGrid" class="grid grid-cols-7 gap-1 flex-1 items-start content-start">
+                <!-- JS에서 동적으로 렌더링 -->
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 3. 할 일(To-Do) 위젯 -->
+        <!-- ========================================== -->
+        <div class="glass-panel p-6 flex flex-col h-[420px]">
+            <!-- 헤더 -->
+            <div class="flex items-center justify-between mb-5">
+                <h2 class="text-xl font-bold flex items-center gap-2 drop-shadow-sm">
+                    <i class="ph-fill ph-check-square-offset text-2xl"></i>
+                    나의 할 일
+                </h2>
+                <span id="taskCount" class="text-xs font-semibold bg-white/20 px-2 py-1 rounded-full opacity-90">0개 남음</span>
+            </div>
+
+            <!-- 입력 폼 -->
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="todoInput" 
+                    class="flex-1 rounded-xl bg-white/20 border border-white/30 px-4 py-2.5 text-sm placeholder-white/60 focus:outline-none focus:bg-white/30 focus:border-white/50 transition shadow-inner" 
+                    placeholder="오늘의 새로운 할 일은?"
+                    onkeypress="handleKeyPress(event)">
+                <button onclick="addTodo()" class="bg-white/20 hover:bg-white/30 border border-white/30 px-4 py-2.5 rounded-xl transition flex items-center justify-center shadow-sm">
+                    <i class="ph ph-plus text-lg font-bold"></i>
+                </button>
+            </div>
+
+            <!-- 할 일 목록 영역 -->
+            <div class="flex-1 overflow-hidden relative">
+                <!-- 리스트가 비어있을 때 표시할 메시지 -->
+                <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center opacity-60 hidden transition-opacity duration-300">
+                    <i class="ph ph-coffee text-4xl mb-2"></i>
+                    <p class="text-sm font-medium text-center">모든 할 일을 마쳤습니다!<br>여유를 즐기세요.</p>
+                </div>
+                
+                <!-- 실제 리스트 (스크롤 적용) -->
+                <ul id="todoList" class="h-full overflow-y-auto space-y-2 pr-2 custom-scrollbar pb-2">
+                    <!-- JS에서 항목이 여기에 동적으로 추가됩니다 -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 4. 미팅 메모 위젯 -->
+        <!-- ========================================== -->
+        <div class="md:col-span-2 lg:col-span-3 glass-panel p-6 flex flex-col md:flex-row gap-6 md:h-[500px]">
+            
+            <!-- 왼쪽: 메모 목록 -->
+            <div class="w-full md:w-64 flex flex-col border-b md:border-b-0 md:border-r border-white/20 pb-4 md:pb-0 md:pr-6 shrink-0">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold flex items-center gap-2 drop-shadow-sm">
+                        <i class="ph-fill ph-notebook text-2xl"></i>
+                        회의 메모
+                    </h2>
+                    <button onclick="createNewNote()" class="bg-white/20 hover:bg-white/30 p-2 rounded-xl transition" title="새 메모 작성">
+                        <i class="ph ph-plus font-bold"></i>
+                    </button>
+                </div>
+                
+                <!-- 목록 영역 (모바일은 높이 고정, PC는 꽉 차게) -->
+                <div class="h-32 md:flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-2" id="noteList">
+                    <!-- 메모 리스트가 동적으로 렌더링 됩니다 -->
+                </div>
+            </div>
+
+            <!-- 오른쪽: 메모 에디터 -->
+            <div class="flex-1 flex flex-col min-h-[300px] md:min-h-0 relative">
+                <input type="text" id="noteTitle" 
+                    class="bg-transparent text-xl font-bold mb-3 focus:outline-none placeholder-white/50 w-full" 
+                    placeholder="회의 제목을 입력하세요..."
+                    oninput="triggerAutoSave()">
+                
+                <textarea id="noteContent" 
+                    class="flex-1 bg-white/10 border border-white/10 rounded-xl p-4 resize-none focus:outline-none focus:bg-white/20 transition custom-scrollbar placeholder-white/50 text-sm leading-relaxed" 
+                    placeholder="회의 안건, 결정 사항 등을 자유롭게 기록하세요. 입력 시 자동 저장됩니다."
+                    oninput="triggerAutoSave()"></textarea>
+                
+                <div class="mt-4 flex justify-between items-center">
+                <span id="saveStatus" class="text-xs font-medium opacity-70 bg-black/10 px-3 py-1 rounded-full"></span>
+                <div class="flex gap-2">
+                     <button onclick="deleteCurrentNote()" id="btnDeleteNote" class="px-4 py-2 bg-red-500/80 hover:bg-red-500 text-white rounded-xl transition text-sm hidden flex items-center gap-1 shadow-sm">
+                        <i class="ph ph-trash"></i> 삭제
+                     </button>
+                     <button onclick="saveNote()" class="px-5 py-2 bg-blue-500/80 hover:bg-blue-500 text-white rounded-xl transition text-sm flex items-center gap-1 shadow-sm font-semibold">
+                        <i class="ph ph-floppy-disk"></i> 수동 저장
+                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        </div> <!-- 위젯 그리드 영역 종료 -->
+    </div> <!-- 메인 래퍼 종료 -->
+
+<script>
+    /* ==========================================
+       공통 및 날씨/시계 로직
+           ========================================== */
+        const elTimeDisplay = document.getElementById('timeDisplay');
+        const elDateDisplay = document.getElementById('dateDisplay');
+        const elLocationName = document.getElementById('locationName');
+        const elCurrentTemp = document.getElementById('currentTemp');
+        const elMinTemp = document.getElementById('minTemp');
+        const elMaxTemp = document.getElementById('maxTemp');
+        const elWeatherDesc = document.getElementById('weatherDesc');
+        const elWeatherIconContainer = document.getElementById('weatherIconContainer');
+        const elLoadingOverlay = document.getElementById('loadingOverlay');
+        const elErrorMessage = document.getElementById('errorMessage');
+        const elErrorText = document.getElementById('errorText');
+
+        const daysKR = ['일', '월', '화', '수', '목', '금', '토'];
+        let currentWeatherCondition = 'clear'; // 초기 상태
+
+        // 1. 시계 업데이트
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            elTimeDisplay.textContent = `${hours}:${minutes}`;
+
+            const month = now.getMonth() + 1;
+            const date = now.getDate();
+            const dayName = daysKR[now.getDay()];
+            elDateDisplay.textContent = `${month}월 ${date}일 (${dayName})`;
+
+            updateThemeBasedOnTimeAndWeather(now.getHours());
+        }
+
+        // 2. 테마 업데이트 (Body의 클래스를 변경)
+        function updateThemeBasedOnTimeAndWeather(hour) {
+            document.body.className = ''; // 기존 클래스 초기화
+            document.body.classList.add('p-4', 'sm:p-8'); // 기본 패딩 유지
+            
+            if (currentWeatherCondition === 'cloudy') {
+                document.body.classList.add('bg-cloudy');
+            } else if (currentWeatherCondition === 'rainy') {
+                document.body.classList.add('bg-rainy');
+            } else if (currentWeatherCondition === 'snowy') {
+                document.body.classList.add('bg-snowy');
+            } else {
+                // 맑음 (시간대별)
+                if (hour >= 6 && hour < 17) {
+                    document.body.classList.add('bg-day');
+                } else if (hour >= 17 && hour < 19) {
+                    document.body.classList.add('bg-sunset'); // 17시~18시 일몰
+                } else {
+                    document.body.classList.add('bg-night');
+                }
+            }
+        }
+
+        // 3. 날씨 데이터 가져오기
+        async function fetchWeather() {
+            showLoading(true);
+            hideError();
+
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        getWeatherData(lat, lon);
+                        getLocationName(lat, lon);
+                    },
+                    error => {
+                        console.warn("위치 정보 접근 실패, 서울 기준으로 표출");
+                        getWeatherData(37.5665, 126.9780);
+                        elLocationName.textContent = "서울 (기본)";
+                    },
+                    { timeout: 10000 }
+                );
+            } else {
+                showError("위치 기능을 지원하지 않는 브라우저입니다.");
+            }
+        }
+
+        async function getWeatherData(lat, lon) {
+            try {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("날씨 데이터 fetch 실패");
+                const data = await response.json();
+                
+                const current = data.current_weather;
+                const daily = data.daily;
+
+                elCurrentTemp.textContent = Math.round(current.temperature);
+                elMaxTemp.textContent = `${Math.round(daily.temperature_2m_max[0])}°`;
+                elMinTemp.textContent = `${Math.round(daily.temperature_2m_min[0])}°`;
+                
+                const weatherInfo = parseWeatherCode(current.weathercode, current.is_day);
+                elWeatherDesc.textContent = weatherInfo.desc;
+                elWeatherIconContainer.innerHTML = weatherInfo.iconHTML;
+
+                updateThemeBasedOnTimeAndWeather(new Date().getHours());
+                showLoading(false);
+            } catch (error) {
+                showError("날씨 정보를 불러올 수 없습니다.");
+            }
+        }
+
+        async function getLocationName(lat, lon) {
+             try {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&accept-language=ko`;
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    const city = data.address.city || data.address.town || data.address.borough || data.address.province || "현재 위치";
+                    elLocationName.textContent = city;
+                }
+            } catch (error) {
+                elLocationName.textContent = "현재 위치";
+            }
+        }
+
+        function parseWeatherCode(code, isDay) {
+            let iconClass = 'ph-cloud';
+            let desc = '흐림';
+            currentWeatherCondition = 'clear';
+
+            if (code === 0) {
+                iconClass = isDay ? 'ph-sun text-yellow-300' : 'ph-moon text-yellow-200';
+                desc = '맑음';
+            } else if (code === 1 || code === 2 || code === 3) {
+                if (code === 1) {
+                    iconClass = isDay ? 'ph-cloud-sun text-yellow-200' : 'ph-cloud-moon text-gray-200';
+                    desc = '구름 조금';
+                } else if (code === 2) {
+                     iconClass = isDay ? 'ph-cloud-sun text-gray-200' : 'ph-cloud-moon text-gray-300';
+                     desc = '구름 많음';
+                     currentWeatherCondition = 'cloudy';
+                } else {
+                    iconClass = 'ph-cloud text-gray-300';
+                    desc = '흐림';
+                    currentWeatherCondition = 'cloudy';
+                }
+            } else if (code === 45 || code === 48) {
+                iconClass = 'ph-cloud-fog text-gray-300';
+                desc = '안개';
+                currentWeatherCondition = 'cloudy';
+            } else if (code >= 51 && code <= 67) {
+                iconClass = 'ph-cloud-rain text-blue-300';
+                desc = '비';
+                currentWeatherCondition = 'rainy';
+            } else if (code >= 71 && code <= 77) {
+                iconClass = 'ph-cloud-snow text-white';
+                desc = '눈';
+                currentWeatherCondition = 'snowy';
+            } else if (code >= 80 && code <= 82) {
+                 iconClass = 'ph-cloud-showers text-blue-300';
+                 desc = '소나기';
+                 currentWeatherCondition = 'rainy';
+            } else if (code >= 85 && code <= 86) {
+                 iconClass = 'ph-cloud-snow text-white';
+                 desc = '눈보라';
+                 currentWeatherCondition = 'snowy';
+            } else if (code >= 95) {
+                iconClass = 'ph-cloud-lightning text-purple-300';
+                desc = '뇌우';
+                currentWeatherCondition = 'rainy';
+            }
+
+            return { desc: desc, iconHTML: `<i class="ph-fill ${iconClass}"></i>` };
+        }
+
+        function showLoading(isLoading) {
+            elLoadingOverlay.classList.toggle('hidden', !isLoading);
+        }
+        function showError(message) {
+            showLoading(false);
+            elErrorText.textContent = message;
+            elErrorMessage.classList.remove('hidden');
+        }
+        function hideError() { elErrorMessage.classList.add('hidden'); }
+
+
+        /* ==========================================
+           할 일(To-Do) 관리 로직 (LocalStorage 연동)
+           ========================================== */
+        const todoInput = document.getElementById('todoInput');
+        const todoList = document.getElementById('todoList');
+        const emptyState = document.getElementById('emptyState');
+        const taskCount = document.getElementById('taskCount');
+        
+        let todos = [];
+
+        // 로컬 스토리지에서 데이터 불러오기
+        function loadTodos() {
+            const savedTodos = localStorage.getItem('myDashboardTodos');
+            if (savedTodos) {
+                todos = JSON.parse(savedTodos);
+            }
+            renderTodos();
+        }
+
+        // 로컬 스토리지에 데이터 저장하기
+        function saveTodos() {
+            localStorage.setItem('myDashboardTodos', JSON.stringify(todos));
+        }
+
+        // 할 일 추가
+        function addTodo() {
+            const text = todoInput.value.trim();
+            if (text === '') return; // 빈 입력 방지 (alert 미사용)
+
+            const newTodo = {
+                id: Date.now(),
+                text: text,
+                done: false
+            };
+
+            todos.unshift(newTodo); // 배열 맨 앞에 추가 (최신순)
+            todoInput.value = ''; // 입력창 비우기
+            saveTodos();
+            renderTodos();
+        }
+
+        // 엔터키 입력 처리
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                addTodo();
+            }
+        }
+
+        // 할 일 상태 토글 (완료/미완료)
+        function toggleTodo(id) {
+            todos = todos.map(todo => {
+                if (todo.id === id) {
+                    return { ...todo, done: !todo.done };
+                }
+                return todo;
+            });
+            saveTodos();
+            renderTodos();
+        }
+
+        // 할 일 삭제
+        function deleteTodo(id) {
+            todos = todos.filter(todo => todo.id !== id);
+            saveTodos();
+            renderTodos();
+        }
+
+        // 할 일 목록 UI 렌더링
+        function renderTodos() {
+            todoList.innerHTML = '';
+            
+            // 빈 상태 처리
+            if (todos.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            // 남은 할 일 개수 업데이트
+            const remainingCount = todos.filter(t => !t.done).length;
+            taskCount.textContent = `${remainingCount}개 남음`;
+
+            // 목록 생성
+            todos.forEach(todo => {
+                const li = document.createElement('li');
+                li.className = `group flex items-center justify-between p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 transition duration-200 mb-2 ${todo.done ? 'todo-done' : ''}`;
+                
+                li.innerHTML = `
+                    <div class="flex items-center gap-3 flex-1 overflow-hidden cursor-pointer" onclick="toggleTodo(${todo.id})">
+                        <button class="text-xl flex-shrink-0 focus:outline-none transition-transform hover:scale-110">
+                            ${todo.done 
+                                ? '<i class="ph-fill ph-check-circle text-green-300"></i>' 
+                                : '<i class="ph ph-circle text-white/70"></i>'}
+                        </button>
+                        <span class="text-sm font-medium truncate">${escapeHTML(todo.text)}</span>
+                    </div>
+                    <!-- 모바일에서도 휴지통이 보이도록 투명도 설정 수정 -->
+                    <button onclick="deleteTodo(${todo.id})" class="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 text-white/50 hover:text-red-300 hover:bg-white/10 rounded-lg transition focus:outline-none">
+                        <i class="ph ph-trash"></i>
+                    </button>
+                `;
+                todoList.appendChild(li);
+            });
+        }
+
+        // XSS 방지를 위한 텍스트 이스케이프 함수
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        /* ==========================================
+           미팅 메모장 로직 (LocalStorage 연동)
+           ========================================== */
+        let notes = [];
+        let currentNoteId = null;
+        let autoSaveTimeout = null;
+
+        // 로컬 스토리지에서 메모 데이터 불러오기
+        function loadNotes() {
+            const savedNotes = localStorage.getItem('myDashboardNotes');
+            if (savedNotes) {
+                notes = JSON.parse(savedNotes);
+            }
+            renderNoteList();
+            
+            // 저장된 메모가 있으면 첫 번째 메모 선택, 없으면 새 메모 열기
+            if (notes.length > 0) {
+                selectNote(notes[0].id);
+            } else {
+                createNewNote();
+            }
+        }
+
+        function saveNotesToStorage() {
+            localStorage.setItem('myDashboardNotes', JSON.stringify(notes));
+        }
+
+        // 메모 목록 렌더링
+        function renderNoteList() {
+            const listEl = document.getElementById('noteList');
+            listEl.innerHTML = '';
+            
+            if (notes.length === 0) {
+                listEl.innerHTML = '<div class="text-xs text-center opacity-60 mt-4 bg-black/10 py-3 rounded-lg">저장된 메모가 없습니다.</div>';
+                return;
+            }
+
+            notes.forEach(note => {
+                const div = document.createElement('div');
+                const isActive = note.id === currentNoteId;
+                
+                div.className = `p-3 rounded-xl cursor-pointer transition border group ${
+                    isActive 
+                    ? 'bg-white/30 border-white/40 shadow-sm' 
+                    : 'bg-white/5 border-transparent hover:bg-white/10'
+                }`;
+                div.onclick = () => selectNote(note.id);
+                
+                const title = note.title || '제목 없는 메모';
+                const dateObj = new Date(note.updatedAt);
+                const dateStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
+                
+                div.innerHTML = `
+                    <div class="font-semibold text-sm truncate opacity-90 group-hover:opacity-100 transition">${escapeHTML(title)}</div>
+                    <div class="text-xs opacity-60 mt-1 flex items-center gap-1">
+                        <i class="ph ph-clock text-[10px]"></i> ${dateStr}
+                    </div>
+                `;
+                listEl.appendChild(div);
+            });
+        }
+
+        // 특정 메모 선택
+        function selectNote(id) {
+            currentNoteId = id;
+            const note = notes.find(n => n.id === id);
+            if (note) {
+                document.getElementById('noteTitle').value = note.title;
+                document.getElementById('noteContent').value = note.content;
+                document.getElementById('btnDeleteNote').classList.remove('hidden');
+            }
+            renderNoteList();
+            showSaveStatus('불러오기 완료');
+            setTimeout(() => showSaveStatus(''), 2000); // 2초 후 메시지 지움
+        }
+
+        // 새 메모 생성 준비
+        function createNewNote() {
+            currentNoteId = Date.now(); // 새 ID 발급
+            document.getElementById('noteTitle').value = '';
+            document.getElementById('noteContent').value = '';
+            document.getElementById('btnDeleteNote').classList.add('hidden');
+            showSaveStatus('새 메모 작성 중');
+            renderNoteList();
+        }
+
+        // 메모 저장 로직
+        function saveNote() {
+            const title = document.getElementById('noteTitle').value.trim();
+            const content = document.getElementById('noteContent').value.trim();
+            
+            // 내용이 비어있으면 저장 안 함
+            if (!title && !content) {
+                showSaveStatus('내용이 없습니다.');
+                return;
+            }
+
+            const existingIndex = notes.findIndex(n => n.id === currentNoteId);
+            const noteData = {
+                id: currentNoteId || Date.now(),
+                title: title,
+                content: content,
+                updatedAt: Date.now()
+            };
+
+            if (existingIndex >= 0) {
+                // 기존 메모 수정
+                notes[existingIndex] = noteData;
+            } else {
+                // 새 메모 추가 (맨 앞에)
+                currentNoteId = noteData.id;
+                notes.unshift(noteData);
+            }
+
+            // 최신순으로 정렬 (수정된 메모도 위로 올리려면 주석 해제)
+            // notes.sort((a, b) => b.updatedAt - a.updatedAt);
+
+            saveNotesToStorage();
+            renderNoteList();
+            document.getElementById('btnDeleteNote').classList.remove('hidden');
+            
+            showSaveStatus('✅ 저장 완료');
+            setTimeout(() => { if(document.getElementById('saveStatus').textContent === '✅ 저장 완료') showSaveStatus(''); }, 2000);
+        }
+
+        // 현재 메모 삭제
+        function deleteCurrentNote() {
+            if (!currentNoteId) return;
+            
+            // alert, confirm을 사용하지 않으므로 즉시 삭제 후 피드백
+            notes = notes.filter(n => n.id !== currentNoteId);
+            saveNotesToStorage();
+            
+            showSaveStatus('🗑️ 삭제되었습니다.');
+            
+            if (notes.length > 0) {
+                selectNote(notes[0].id);
+            } else {
+                createNewNote();
+            }
+        }
+
+        // 타이핑 시 1초 뒤 자동 저장 트리거
+        function triggerAutoSave() {
+            showSaveStatus('✍️ 입력 중...');
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                saveNote();
+            }, 1000); // 1초간 입력이 없으면 자동 저장 실행
+        }
+
+        // 저장 상태 메시지 UI 업데이트
+    function showSaveStatus(msg) {
+        const statusEl = document.getElementById('saveStatus');
+        statusEl.textContent = msg;
+        if (msg === '') {
+            statusEl.classList.add('opacity-0');
+        } else {
+            statusEl.classList.remove('opacity-0');
+        }
+    }
+
+    /* ==========================================
+       사용자 환영 메시지 로직
+       ========================================== */
+    const elNameInputContainer = document.getElementById('nameInputContainer');
+    const elGreetingTextContainer = document.getElementById('greetingTextContainer');
+    const elUserNameInput = document.getElementById('userNameInput');
+    const elGreetingText = document.getElementById('greetingText');
+
+    function loadUserName() {
+        const savedName = localStorage.getItem('myDashboardUserName');
+        if (savedName) {
+            showGreeting(savedName);
+        } else {
+            showNameInput();
+        }
+    }
+
+    function saveUserName() {
+        const name = elUserNameInput.value.trim();
+        if (name) {
+            localStorage.setItem('myDashboardUserName', name);
+            showGreeting(name);
+        }
+    }
+
+    function showGreeting(name) {
+        elNameInputContainer.classList.add('hidden');
+        elGreetingTextContainer.classList.remove('hidden');
+        // 앞서 정의된 escapeHTML 함수 재사용
+        elGreetingText.textContent = `${escapeHTML(name)}님, 어서오세요!`;
+    }
+
+    function showNameInput() {
+        elGreetingTextContainer.classList.add('hidden');
+        elNameInputContainer.classList.remove('hidden');
+        elUserNameInput.value = localStorage.getItem('myDashboardUserName') || '';
+        setTimeout(() => elUserNameInput.focus(), 100);
+    }
+
+    // 엔터키 입력 시 저장
+    if(elUserNameInput) {
+        elUserNameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') saveUserName();
+        });
+    }
+
+    /* ==========================================
+       캘린더 (달력) 로직
+       ========================================== */
+    let displayDate = new Date(); // 달력에서 현재 보여주는 기준 날짜
+        const realToday = new Date(); // 실제 오늘 날짜
+
+        // 대한민국 주요 법정 공휴일 및 대체 공휴일 (고정 및 유동)
+        const holidays = {
+            // 매년 고정
+            "01-01": "신정", "03-01": "삼일절", "05-05": "어린이날", "06-06": "현충일",
+            "08-15": "광복절", "10-03": "개천절", "10-09": "한글날", "12-25": "기독탄신일",
+            // 유동 휴일 (최근 연도 하드코딩 - 설, 추석, 부처님오신날, 대체휴일, 선거 등)
+            "2024-02-09": "설연휴", "2024-02-10": "설날", "2024-02-11": "설연휴", "2024-02-12": "대체휴일", "2024-04-10": "선거일", "2024-05-06": "대체휴일", "2024-05-15": "부처님오신날", "2024-09-16": "추석연휴", "2024-09-17": "추석", "2024-09-18": "추석연휴",
+            "2025-01-28": "설연휴", "2025-01-29": "설날", "2025-01-30": "설연휴", "2025-03-03": "대체휴일", "2025-05-05": "어린이날/부처님", "2025-05-06": "대체휴일", "2025-10-05": "추석연휴", "2025-10-06": "추석", "2025-10-07": "추석연휴", "2025-10-08": "대체휴일",
+            "2026-02-16": "설연휴", "2026-02-17": "설날", "2026-02-18": "설연휴", "2026-03-02": "대체휴일", "2026-05-24": "부처님오신날", "2026-05-25": "대체휴일", "2026-06-03": "지방선거", "2026-09-24": "추석연휴", "2026-09-25": "추석", "2026-09-26": "추석연휴", "2026-10-05": "대체휴일",
+            "2027-02-06": "설연휴", "2027-02-07": "설날", "2027-02-08": "설연휴", "2027-02-09": "대체휴일", "2027-05-13": "부처님오신날", "2027-09-14": "추석연휴", "2027-09-15": "추석", "2027-09-16": "추석연휴"
+        };
+
+        function renderCalendar() {
+            const year = displayDate.getFullYear();
+            const month = displayDate.getMonth();
+
+            // 달력 상단 년월 표시
+            document.getElementById('calMonthYear').textContent = `${year}년 ${month + 1}월`;
+
+            const firstDay = new Date(year, month, 1).getDay(); // 해당 월 1일의 요일 (0:일 ~ 6:토)
+            const lastDate = new Date(year, month + 1, 0).getDate(); // 해당 월의 마지막 날짜
+
+            const grid = document.getElementById('calGrid');
+            grid.innerHTML = ''; // 기존 내용 초기화
+
+            // 1. 요일 헤더 렌더링
+            const daysOfWeek = ['일', '월', '화', '수', '목', '금', '토'];
+            daysOfWeek.forEach((day, index) => {
+                const el = document.createElement('div');
+                el.className = 'text-center text-xs font-bold opacity-70 mb-2 mt-1';
+                if (index === 0) el.classList.add('text-red-300'); // 일요일
+                if (index === 6) el.classList.add('text-blue-300'); // 토요일
+                el.textContent = day;
+                grid.appendChild(el);
+            });
+
+            // 2. 시작일 전까지 빈 칸 채우기
+            for (let i = 0; i < firstDay; i++) {
+                const el = document.createElement('div');
+                grid.appendChild(el);
+            }
+
+            // 3. 날짜 렌더링
+            for (let d = 1; d <= lastDate; d++) {
+                const el = document.createElement('div');
+                
+                // 공휴일 확인용 문자열 생성 (MM-DD 및 YYYY-MM-DD)
+                const mmdd = String(month + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+                const yyyymmdd = year + '-' + mmdd;
+                const holidayName = holidays[yyyymmdd] || holidays[mmdd];
+                
+                const currentDayOfWeek = (firstDay + d - 1) % 7;
+                const isSunday = currentDayOfWeek === 0;
+                const isSaturday = currentDayOfWeek === 6;
+
+                // 오늘인지 판별
+                const isToday = (year === realToday.getFullYear() && month === realToday.getMonth() && d === realToday.getDate());
+
+                // 셀 기본 스타일
+                el.className = 'relative flex flex-col items-center justify-center py-2 rounded-lg text-sm font-medium transition hover:bg-white/20 cursor-default';
+                
+                // 글자색 지정 (우선순위: 공휴일/일요일 -> 토요일 -> 평일)
+                if (holidayName || isSunday) {
+                    el.classList.add('text-red-300', 'drop-shadow-sm', 'font-bold');
+                } else if (isSaturday) {
+                    el.classList.add('text-blue-300');
+                } else {
+                    el.classList.add('text-white');
+                }
+
+                // 오늘 날짜 강조 박스
+                if (isToday) {
+                    el.classList.add('bg-white/30', 'shadow-inner', 'ring-1', 'ring-white/50');
+                }
+
+                // 날짜 숫자 입력
+                el.innerHTML = `<span>${d}</span>`;
+
+                // 공휴일인 경우 툴팁 및 하단 점(Indicator) 추가
+                if (holidayName) {
+                    el.title = holidayName; // 마우스 오버 시 공휴일 이름 표시
+                    el.innerHTML += `<div class="absolute bottom-1 w-1 h-1 bg-red-400 rounded-full"></div>`;
+                }
+
+                grid.appendChild(el);
+            }
+        }
+
+        // 이전/다음 달로 이동
+        function changeMonth(delta) {
+            displayDate.setMonth(displayDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        // 오늘 날짜로 복귀
+    function goToday() {
+        displayDate = new Date(); 
+        renderCalendar();
+    }
+
+    // 초기화 실행
+    window.addEventListener('load', () => {
+        setInterval(updateClock, 1000);
+        updateClock();
+        fetchWeather();
+        loadTodos(); // 저장된 할 일 불러오기
+        loadNotes(); // 저장된 메모 불러오기
+        renderCalendar(); // 캘린더 렌더링
+        loadUserName(); // 사용자 이름 불러오기
+    });
+</script>
+</body>
+</html>
