@@ -1,0 +1,10 @@
+{
+    "emeraldwalk.runonsave": {
+        "commands": [
+            {
+                "match": "index\\.html",
+                "cmd": "cd '${workspaceFolder}' && git add index.html && git commit -m 'update: ${file}' && git push"
+            }
+        ]
+    }
+}
