@@ -1,2 +1,17 @@
-# Local Netlify folder
-.netlify
+# 환경변수 / 보안
+api.env
+.env
+*.env
+
+# 서버 관련 (GitHub Pages 불필요)
+node_modules/
+package-lock.json
+package.json
+server.js
+env.gitignore
+
+# 시스템
+.DS_Store
+
+# Claude 내부 파일
+.claude/
