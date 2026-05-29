@@ -560,21 +560,21 @@
             updateThemeToggleBtn(document.documentElement.getAttribute('data-theme') === 'light');
         });
 
-        // AI 통신 핵심부 (지수 백오프 기반 고도화)
+        // AI 통신 핵심부 (Gemini API 직접 호출)
         async function fetchAIResponse(userPrompt) {
-            const url = 'https://productive2026.onrender.com/api/chat';
-            const delays = [1000, 2000, 4000, 8000, 16000];
-            for (let i = 0; i <= 5; i++) {
-                try {
-                    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: userPrompt }) });
-                    if (!response.ok) throw new Error();
-                    const data = await response.json(); return data.text;
-                } catch (error) {
-                    if (i === 5) {
-                        return "죄송합니다. Render AI 배포 서버가 현재 잠들어있거나 응답이 지연되고 있습니다. 약 20초 후 다시 시도해 주시기 바랍니다.";
-                    }
-                    await new Promise(resolve => setTimeout(resolve, delays[i]));
-                }
+            const GEMINI_KEY = 'AIzaSyCyXMGLj2Ot8PeYEVmGbF12sCgGuCFy5cg';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: userPrompt }] }] })
+                });
+                if (!res.ok) throw new Error('api_error');
+                const data = await res.json();
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || '응답을 받지 못했습니다.';
+            } catch(e) {
+                return '❌ AI 응답 실패. 잠시 후 다시 시도해 주세요.';
             }
         }
 
