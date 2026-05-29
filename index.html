@@ -170,10 +170,11 @@
         html[data-theme="light"] .border-white\/15 { border-color: rgba(15,23,42,0.10); }
         html[data-theme="light"] .border-white\/20 { border-color: rgba(15,23,42,0.13); }
         html[data-theme="light"] .border-white\/30 { border-color: rgba(15,23,42,0.18); }
-        /* 간트차트 라이트 모드 최적화 */
-        html[data-theme="light"] .bg-black\/60 { background-color: rgba(255,255,255,0.72); }
-        html[data-theme="light"] .bg-black\/80 { background-color: rgba(255,255,255,0.82); }
-        html[data-theme="light"] .bg-black\/90 { background-color: rgba(255,255,255,0.90); }
+        /* 간트차트 라이트 모드 최적화 — #timeline-list 스코프로 한정 */
+        html[data-theme="light"] #timeline-list .bg-black\/60 { background-color: rgba(255,255,255,0.72); }
+        html[data-theme="light"] #timeline-list .bg-black\/80,
+        html[data-theme="light"] #timeline-list .group-hover\:bg-black\/80 { background-color: rgba(255,255,255,0.82); }
+        html[data-theme="light"] #timeline-list .bg-black\/90 { background-color: rgba(255,255,255,0.90); }
         html[data-theme="light"] #timeline-list .text-white { color: var(--text-primary); }
         html[data-theme="light"] #timeline-list .hover\:bg-white\/5:hover { background-color: rgba(15,23,42,0.05); }
         html[data-theme="light"] #timeline-list .group:hover .group-hover\:bg-black\/80 { background-color: rgba(255,255,255,0.90); }
@@ -181,8 +182,14 @@
         html[data-theme="light"] .text-sky-100,
         html[data-theme="light"] .text-sky-200 { color: var(--text-secondary); }
         html[data-theme="light"] .text-gray-200 { color: var(--text-muted); }
+        html[data-theme="light"] .text-gray-300 { color: var(--text-muted); }
+        html[data-theme="light"] .text-gray-400 { color: var(--text-muted); }
         html[data-theme="light"] .text-red-200  { color: #b91c1c; }
         html[data-theme="light"] .text-blue-100 { color: #1d4ed8; }
+        /* 라이트 모드: hover:text-white → hover:text-primary */
+        html[data-theme="light"] .hover\:text-white:hover { color: var(--text-primary) !important; }
+        /* 라이트 모드: weekly-detail 패널 (bg-black/95는 드로어라 유지) */
+        html[data-theme="light"] #weekly-detail-panel { background-color: rgba(241,245,249,0.97); }
         /* 낮 날씨별 배경 (라이트 모드) */
         body.bg-cloudy-day { background: linear-gradient(-45deg, #d7e1ec, #c9d6df, #bec8d1); background-size: 400% 400%; animation: gradientBG 20s ease infinite; }
         body.bg-rainy-day  { background: linear-gradient(-45deg, #7ec8e3, #5b86e5, #6faee0); background-size: 400% 400%; animation: gradientBG 20s ease infinite; }
@@ -307,7 +314,7 @@
             <div id="weekly-detail-panel" class="absolute bottom-0 inset-x-0 bg-black/95 backdrop-blur-xl border-t border-white/20 rounded-t-3xl p-5 transform translate-y-full transition-transform duration-300 z-30 flex flex-col gap-3 h-[290px]">
                 <div class="flex justify-between items-center pb-2 border-b border-white/10 shrink-0">
                     <span id="wd-title" class="text-sm sm:text-base font-extrabold text-secondary">상세 예보 브리핑</span>
-                    <button onclick="closeWeeklyDetail()" class="text-gray-400 hover:text-white transition text-base font-bold px-1">✕</button>
+                    <button onclick="closeWeeklyDetail()" class="text-muted hover:text-primary transition text-base font-bold px-1">✕</button>
                 </div>
                 <div class="flex items-center gap-4 py-1 shrink-0">
                     <span id="wd-icon" class="text-4xl filter drop-shadow-md">☀️</span>
@@ -451,7 +458,7 @@
         <div class="glass-panel w-full max-w-lg p-6 sm:p-8 flex flex-col gap-4 shadow-[0_0_50px_rgba(56,189,248,0.35)] border-white/20">
             <div class="flex justify-between items-center pb-3 border-b border-divider">
                 <div class="flex items-center gap-2"><span class="text-2xl">🤖</span><h3 id="ai-modal-title" class="text-lg font-extrabold tracking-wider text-primary">AI 분석 브리핑</h3></div>
-                <button onclick="closeAIModal()" class="text-gray-400 hover:text-white text-lg font-bold">✕</button>
+                <button onclick="closeAIModal()" class="text-muted hover:text-primary text-lg font-bold">✕</button>
             </div>
             <div id="ai-modal-content" class="text-sm sm:text-base leading-relaxed text-muted max-h-[280px] overflow-y-auto scrollbar-hide space-y-3 whitespace-pre-line font-medium"></div>
             <div id="ai-modal-footer-todos" class="hidden flex flex-col gap-2 p-3 bg-black/35 rounded-xl border border-white/10 border-divider mt-2">
@@ -470,7 +477,7 @@
                     <span class="text-xl">⚙️</span>
                     <h3 class="text-base sm:text-lg font-extrabold tracking-wider text-primary">프로필 세팅</h3>
                 </div>
-                <button onclick="closeProfileModal()" class="text-gray-400 hover:text-white text-lg font-bold">✕</button>
+                <button onclick="closeProfileModal()" class="text-muted hover:text-primary text-lg font-bold">✕</button>
             </div>
             <div class="flex flex-col gap-4 py-2">
                 <div class="flex flex-col gap-1.5">
@@ -1084,7 +1091,7 @@
             document.getElementById('wd-icon').innerHTML = info.iconHTML;
             document.getElementById('wd-desc').textContent = `${info.desc}`;
             document.getElementById('wd-temp').textContent = `최고 ${maxTemp}°C / 최저 ${minTemp}°C (평균 ${avgTemp}°C)`;
-            document.getElementById('wd-fashion').innerHTML = `<span class="text-base mr-1.5">${fashion.emoji}</span><span class="font-extrabold text-white text-shadow-sm">${fashion.text}</span>`;
+            document.getElementById('wd-fashion').innerHTML = `<span class="text-base mr-1.5">${fashion.emoji}</span><span class="font-extrabold text-primary text-shadow-sm">${fashion.text}</span>`;
 
             // 패널 올리기
             document.getElementById('weekly-detail-panel').classList.remove('translate-y-full');
@@ -1348,7 +1355,7 @@
                 let dDayHtml = ''; if (todo.deadline && !todo.completed) { const today = new Date(); today.setHours(0,0,0,0); const dDate = new Date(todo.deadline); dDate.setHours(0,0,0,0); const diffDays = Math.ceil((dDate - today) / (1000 * 60 * 60 * 24)); const dClass = diffDays < 0 ? 'bg-red-500/80' : (diffDays === 0 ? 'bg-orange-500/80' : 'bg-sky-500/80'); const dText = diffDays < 0 ? `D+${Math.abs(diffDays)}` : (diffDays === 0 ? 'D-Day' : `D-${diffDays}`); dDayHtml = `<span class="ml-1.5 sm:ml-2 text-[0.6rem] sm:text-[0.65rem] font-bold px-1 sm:px-1.5 py-0.5 rounded text-white ${dClass}">${dText}</span>`; }
                 const tagHtml = todo.tag && todo.tag !== '일반' ? `<span class="text-[0.6rem] sm:text-[0.65rem] font-bold px-1 sm:px-1.5 py-0.5 rounded bg-white/20 text-secondary">${todo.tag}</span> ` : '';
                 const dailyHtml = todo.isDaily ? `<span class="text-[0.6rem] sm:text-[0.65rem] font-bold px-1 sm:px-1.5 py-0.5 rounded bg-green-500/80 text-white" title="매일 반복">🔄</span>` : '';
-                li.innerHTML = `<div class="cursor-grab text-gray-500 hover:text-primary flex items-center justify-center pt-1 transition" title="드래그하여 이동">⋮⋮</div><input type="checkbox" class="custom-checkbox mt-0.5 shrink-0" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(${todo.id})"><div class="flex-1 min-w-0 flex flex-col" ondblclick="editTodo(${todo.id})"><span class="text-xs sm:text-sm font-bold leading-snug break-words text-primary ${todo.completed ? 'line-through opacity-60' : ''}">${todo.text}</span><div class="mt-1 flex items-center gap-1 sm:gap-1.5 ${todo.completed ? 'opacity-40' : 'opacity-90'}">${tagHtml} ${dailyHtml}<span class="text-[0.6rem] sm:text-[0.65rem] tracking-wider text-muted font-medium ml-0.5 sm:ml-1">${dateStr}</span>${dDayHtml}</div></div><div class="flex gap-1.5 sm:gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity items-center shrink-0"><button onclick="toggleImportant(${todo.id})" class="text-xs sm:text-sm hover:scale-125 transition ${todo.important ? 'grayscale-0 drop-shadow-md' : 'grayscale opacity-40'}">⭐</button><button onclick="editTodo(${todo.id})" class="text-xs sm:text-sm text-muted hover:text-primary transition">✏️</button><button onclick="deleteTodo(${todo.id})" class="text-xs sm:text-sm text-muted hover:text-red-400 transition font-bold">❌</button></div>`;
+                li.innerHTML = `<div class="cursor-grab text-muted hover:text-primary flex items-center justify-center pt-1 transition" title="드래그하여 이동">⋮⋮</div><input type="checkbox" class="custom-checkbox mt-0.5 shrink-0" ${todo.completed ? 'checked' : ''} onchange="toggleTodo(${todo.id})"><div class="flex-1 min-w-0 flex flex-col" ondblclick="editTodo(${todo.id})"><span class="text-xs sm:text-sm font-bold leading-snug break-words text-primary ${todo.completed ? 'line-through opacity-60' : ''}">${todo.text}</span><div class="mt-1 flex items-center gap-1 sm:gap-1.5 ${todo.completed ? 'opacity-40' : 'opacity-90'}">${tagHtml} ${dailyHtml}<span class="text-[0.6rem] sm:text-[0.65rem] tracking-wider text-muted font-medium ml-0.5 sm:ml-1">${dateStr}</span>${dDayHtml}</div></div><div class="flex gap-1.5 sm:gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity items-center shrink-0"><button onclick="toggleImportant(${todo.id})" class="text-xs sm:text-sm hover:scale-125 transition ${todo.important ? 'grayscale-0 drop-shadow-md' : 'grayscale opacity-40'}">⭐</button><button onclick="editTodo(${todo.id})" class="text-xs sm:text-sm text-muted hover:text-primary transition">✏️</button><button onclick="deleteTodo(${todo.id})" class="text-xs sm:text-sm text-muted hover:text-red-400 transition font-bold">❌</button></div>`;
                 if (todo.completed) { completedList.appendChild(li); completedCount++; } else { activeList.appendChild(li); activeCount++; }
             });
             const total = activeCount + completedCount; document.getElementById('todo-count').textContent = completedCount; document.getElementById('total-todo-count').textContent = total; document.getElementById('todo-progress').style.width = total === 0 ? '0%' : ((completedCount/total)*100) + '%';
