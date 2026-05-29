@@ -382,9 +382,9 @@
             </div>
             <form id="todo-form" class="mt-auto flex flex-col gap-1.5 sm:gap-2 shrink-0 pt-1 sm:pt-2 border-t border-divider">
                 <div class="flex gap-1.5 sm:gap-2">
-                    <input type="text" id="todo-input" placeholder="할 일 입력..." class="flex-1 custom-input rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-medium outline-none border-divider focus:border-sky-400 transition shadow-inner" required>
-                    <button type="button" onclick="toggleAdvancedTodoOptions()" class="custom-input border-divider hover:bg-black/50 px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-xl transition shadow-sm shrink-0">⚙️</button>
-                    <button type="submit" class="bg-sky-500/80 hover:bg-sky-500 text-white px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl transition font-bold shadow-md text-sm shrink-0">추가</button>
+                    <input type="text" id="todo-input" placeholder="할 일 입력..." class="flex-1 min-w-0 custom-input rounded-xl px-3 py-2 sm:py-2.5 text-xs sm:text-sm font-medium outline-none border-divider focus:border-sky-400 transition shadow-inner" required>
+                    <button type="button" onclick="toggleAdvancedTodoOptions()" class="custom-input border-divider hover:bg-black/50 w-9 sm:w-10 py-2 sm:py-2.5 rounded-xl transition shadow-sm shrink-0 flex items-center justify-center">⚙️</button>
+                    <button type="submit" class="bg-sky-500/80 hover:bg-sky-500 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition font-bold shadow-md text-xs sm:text-sm shrink-0">추가</button>
                 </div>
                 <div id="todo-advanced-options" class="hidden flex flex-wrap gap-1.5 sm:gap-2 bg-black/40 border border-white/10 p-2 sm:p-2.5 rounded-xl text-[0.65rem] sm:text-xs items-center shadow-inner mt-1 border-divider">
                     <select id="todo-tag-select" class="custom-input border rounded-lg px-1.5 sm:px-2 py-1 sm:py-1.5 font-medium outline-none w-full sm:w-auto"><option value="일반" class="text-black">기본 태그</option><option value="업무" class="text-black">업무</option><option value="개인" class="text-black">개인</option><option value="긴급" class="text-black">긴급</option></select>
