@@ -181,14 +181,25 @@
         /* 라이트 모드: 텍스트 색상 재매핑 */
         html[data-theme="light"] .text-sky-100,
         html[data-theme="light"] .text-sky-200 { color: var(--text-secondary); }
+        html[data-theme="light"] .text-sky-300  { color: var(--text-secondary); }
+        html[data-theme="light"] .text-sky-400  { color: var(--text-accent); }
+        html[data-theme="light"] .text-blue-100 { color: var(--text-secondary); }
+        html[data-theme="light"] .text-blue-300 { color: var(--text-secondary); }
+        html[data-theme="light"] .text-blue-400 { color: var(--text-secondary); }
+        html[data-theme="light"] .text-red-100  { color: #dc2626; }
+        html[data-theme="light"] .text-red-200  { color: #dc2626; }
+        html[data-theme="light"] .text-red-300  { color: #dc2626; }
+        html[data-theme="light"] .text-red-400  { color: #dc2626; }
+        html[data-theme="light"] .text-green-300 { color: #15803d; }
+        html[data-theme="light"] .text-green-400 { color: #15803d; }
+        html[data-theme="light"] .text-orange-300 { color: #c2410c; }
         html[data-theme="light"] .text-gray-200 { color: var(--text-muted); }
         html[data-theme="light"] .text-gray-300 { color: var(--text-muted); }
         html[data-theme="light"] .text-gray-400 { color: var(--text-muted); }
-        html[data-theme="light"] .text-red-200  { color: #b91c1c; }
-        html[data-theme="light"] .text-blue-100 { color: #1d4ed8; }
-        /* 라이트 모드: hover:text-white → hover:text-primary */
-        html[data-theme="light"] .hover\:text-white:hover { color: var(--text-primary) !important; }
-        /* 라이트 모드: weekly-detail 패널 (bg-black/95는 드로어라 유지) */
+        /* 라이트 모드: hover 상태 */
+        html[data-theme="light"] .hover\:text-white:hover  { color: var(--text-primary) !important; }
+        html[data-theme="light"] .hover\:text-red-400:hover { color: #dc2626 !important; }
+        /* 라이트 모드: weekly-detail 패널 */
         html[data-theme="light"] #weekly-detail-panel { background-color: rgba(241,245,249,0.97); }
         /* 낮 날씨별 배경 (라이트 모드) */
         body.bg-cloudy-day { background: linear-gradient(-45deg, #d7e1ec, #c9d6df, #bec8d1); background-size: 400% 400%; animation: gradientBG 20s ease infinite; }
@@ -1685,7 +1696,9 @@
                     const hh = val.slice(9,11), mm = val.slice(11,13);
                     if (val.endsWith('Z')) {
                         const dt = new Date(y+'-'+mo+'-'+d+'T'+hh+':'+mm+':00Z');
-                        return { dateStr: y+'-'+mo+'-'+d, time: String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0') };
+                        // UTC→로컬 날짜+시간 모두 변환 (날짜도 현지 기준으로)
+                        const localDate = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+                        return { dateStr: localDate, time: String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0') };
                     }
                     return { dateStr: y+'-'+mo+'-'+d, time: hh+':'+mm };
                 }
