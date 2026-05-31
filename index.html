@@ -1250,9 +1250,16 @@
                 const isToday = day.toDateString() === new Date().toDateString(); const isSelected = day.toDateString() === calSelectedDate.toDateString();
                 let textClass = "text-primary"; if (i === 0) textClass = "text-red-400"; else if (i === 6) textClass = "text-sky-400";
                 const holiday = getHolidayName(dy, day.getMonth() + 1, day.getDate()); if (holiday) textClass = "text-red-400 font-bold";
-                const tasks = dailySchedules[dateStr] || []; let tasksSummary = '';
-                if (tasks.length > 0) tasksSummary = tasks.map(t => '<span class="inline-block text-xs font-bold bg-white/10 border border-white/5 px-2 py-0.5 rounded text-secondary max-w-[120px] truncate" title="' + t.text + (t.location ? ' @ ' + t.location : '') + '">' + (t.time !== '종일' ? t.time + ' ' : '') + t.text + (t.location ? ' (' + t.location + ')' : '') + '</span>').join(' ');
-                else tasksSummary = '<span class="text-xs sm:text-sm text-muted font-medium">계획된 일정 없음</span>';
+                const tasks = dailySchedules[dateStr] || [];
+                const extTasks = externalCalEvents[dateStr] || [];
+                let tasksSummary = '';
+                if (tasks.length > 0 || extTasks.length > 0) {
+                    const localHtml = tasks.map(t => '<span class="inline-block text-xs font-bold bg-white/10 border border-white/5 px-2 py-0.5 rounded text-secondary max-w-[120px] truncate" title="' + t.text + (t.location ? ' @ ' + t.location : '') + '">' + (t.time !== '종일' ? t.time + ' ' : '') + t.text + '</span>');
+                    const extHtml = extTasks.map(e => '<span class="inline-block text-xs font-bold px-2 py-0.5 rounded max-w-[120px] truncate" style="background:' + e.color + '22;color:' + e.color + ';border:1px solid ' + e.color + '44" title="' + e.title + '">' + (e.time !== '종일' ? e.time + ' ' : '') + e.title + '</span>');
+                    tasksSummary = [...localHtml, ...extHtml].join(' ');
+                } else {
+                    tasksSummary = '<span class="text-xs sm:text-sm text-muted font-medium">계획된 일정 없음</span>';
+                }
                 const borderClass = isSelected ? 'border-sky-400 bg-black/45 shadow-md' : (isToday ? 'border-white/30 bg-black/30' : 'border-divider custom-item');
                 daysHtml += '<div onclick="selectDayAndSwitchView(\'' + dateStr + '\', \'daily\')" class="flex items-center justify-between p-2.5 border rounded-xl transition cursor-pointer ' + borderClass + '"><div class="flex flex-col shrink-0 w-16"><span class="text-sm font-extrabold ' + textClass + '">' + day.getDate() + '일 (' + daysKR[i] + ')</span>' + (holiday ? '<span class="text-xs text-red-400 font-bold truncate">' + holiday + '</span>' : '') + '</div><div class="flex-1 min-w-0 flex flex-wrap gap-1.5 items-center pl-2">' + tasksSummary + '</div><div class="shrink-0 text-muted pl-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg></div></div>';
             }
