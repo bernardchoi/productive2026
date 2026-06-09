@@ -580,7 +580,7 @@
 
         // AI 통신 핵심부 (Gemini API 직접 호출)
         async function fetchAIResponse(userPrompt) {
-            const GEMINI_KEY = 'AIzaSyCyXMGLj2Ot8PeYEVmGbF12sCgGuCFy5cg';
+            const GEMINI_KEY = 'AQ.Ab8RN6JrGhBuYHWRdB4jb7cgYYsHj4_7Win-GlSWO_lOLPxsnQ';
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
             try {
                 const res = await fetch(url, {
@@ -588,11 +588,17 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ parts: [{ text: userPrompt }] }] })
                 });
-                if (!res.ok) throw new Error('api_error');
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    const errMsg = errData?.error?.message || `HTTP ${res.status}`;
+                    console.error('[AI Error]', res.status, errMsg, errData);
+                    return `❌ AI 오류 (${res.status}): ${errMsg}`;
+                }
                 const data = await res.json();
                 return data.candidates?.[0]?.content?.parts?.[0]?.text || '응답을 받지 못했습니다.';
             } catch(e) {
-                return '❌ AI 응답 실패. 잠시 후 다시 시도해 주세요.';
+                console.error('[AI Fetch Error]', e);
+                return `❌ AI 응답 실패: ${e.message}`;
             }
         }
 
